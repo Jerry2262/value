@@ -34,7 +34,8 @@ def load_factor_configs() -> dict:
     merged: dict = {}
     factor_dir = CONFIG_DIR / "factors"
     for f in sorted(factor_dir.glob("*.yaml")):
-        data = yaml.safe_load(f) or {}
+        with f.open(encoding="utf-8") as fh:
+            data = yaml.safe_load(fh) or {}
         for key, spec in (data.get("factors") or {}).items():
             merged[key] = spec
     return merged
