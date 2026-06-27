@@ -1,7 +1,11 @@
 import pandas as pd
 import pytest
 
-from src.data_pipeline.fetchers.base import FUNDAMENTAL_COLUMNS, QUOTE_COLUMNS
+from src.data_pipeline.fetchers.base import (
+    DELISTING_COLUMNS,
+    FUNDAMENTAL_COLUMNS,
+    QUOTE_COLUMNS,
+)
 from src.data_pipeline import store
 
 
@@ -75,3 +79,17 @@ def quotes_for_momentum(isolated_data_dir):
         ]
         store.write_parquet_partition(pd.DataFrame(rows, columns=QUOTE_COLUMNS),
                                       "market", date, "a_share")
+
+
+@pytest.fixture
+def a_share_delisting(isolated_data_dir):
+    """A 股退市列表：C1 2020 退市，C2 2025 退市，C3 在市。
+
+    与 tests/pit/conftest.py 同名 fixture 同义（pytest conftest 不跨兄弟目录可见，
+    故在 factor_engine 目录复制一份供 test_engine 退市扣除测试用）。
+    """
+    df = pd.DataFrame([
+        {"code": "C1", "market": "a_share", "delist_date": "2020-01-01", "reason": "强制退市"},
+        {"code": "C2", "market": "a_share", "delist_date": "2025-06-30", "reason": "吸收合并"},
+    ], columns=DELISTING_COLUMNS)
+    store.write_parquet_partition(df, "delisting", "2026-06-27", "a_share")
