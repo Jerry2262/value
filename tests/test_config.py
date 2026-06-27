@@ -36,8 +36,13 @@ def test_momentum_weight_is_zero(factors_cfg=None):
     assert factors["momentum_12m1m"]["in_composite"] is False
 
 
-def test_ensure_dirs_creates_metadata(tmp_path, monkeypatch):
-    monkeypatch.setenv("VALUE_DATA_DIR", str(tmp_path))
-    # ensure_dirs 用的是模块导入时的 DATA_DIR；直接调用并断言子目录被建
-    config.METADATA_DIR.mkdir(parents=True, exist_ok=True)
-    assert config.METADATA_DIR.is_dir()
+def test_ensure_dirs_creates_metadata(isolated_data_dir):
+    # isolated_data_dir reloads src.config so DATA_DIR/METADATA_DIR point at
+    # the tmp dir; calling ensure_dirs() must create the runtime subdirs there
+    # (not the real project data/).
+    import src.config as cfg
+    cfg.ensure_dirs()
+    assert (cfg.DATA_DIR / "metadata").is_dir()
+    assert (cfg.DATA_DIR / "raw").is_dir()
+    assert (cfg.DATA_DIR / "processed").is_dir()
+    assert (cfg.DATA_DIR / "pit").is_dir()

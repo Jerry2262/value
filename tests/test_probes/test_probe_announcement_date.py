@@ -33,6 +33,14 @@ def test_probe_passes_at_threshold():
     assert r.stats["sample_size"] == 100
 
 
+def test_probe_passes_at_exact_threshold():
+    # 覆盖率恰好等于阈值 → 通过 >= 分支 PASSED；翻转成 > 会失败
+    probe = AnnouncementDateProbe(sample_size=100, threshold=0.80)
+    r = probe.run(FakeFetcher(_rows(80, 20)))  # 恰好 80% → PASSED via >=
+    assert r.status == PASSED
+    assert abs(r.stats["coverage_rate"] - 0.80) < 1e-9
+
+
 def test_probe_warns_below_threshold():
     probe = AnnouncementDateProbe(sample_size=100, threshold=0.80)
     r = probe.run(FakeFetcher(_rows(70, 30)))

@@ -45,3 +45,12 @@ def test_probe_warns_above_threshold():
 def test_probe_warns_when_no_calendar():
     r = ValueBenchmarkProbe(index_code="000300value", threshold=0.05).run(FakeFetcher(_bars(["2023-01-02"]), []))
     assert r.status == WARNING
+
+
+def test_probe_uses_downgrade_map_for_known_key():
+    # 用真实 DOWNGRADE 映射的键 csi300_value，断言映射值 csi300 出现在 summary
+    cal = [f"2023-01-{i:02d}" for i in range(2, 22)]  # 20 天
+    bars = _bars(cal[:16])  # 缺 4 → 20% → WARNING
+    r = ValueBenchmarkProbe(index_code="csi300_value", threshold=0.05).run(FakeFetcher(bars, cal))
+    assert r.status == WARNING
+    assert "csi300" in r.summary  # DOWNGRADE["csi300_value"] == "csi300"
