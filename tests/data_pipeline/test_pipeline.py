@@ -12,7 +12,8 @@ def test_run_daily_pipeline_quote_clean_store(mocker, isolated_data_dir):
         "最高": [10.5], "最低": [9.9], "成交量": [100000],
     })
     mocker.patch("akshare.stock_zh_a_hist", return_value=raw)
-    fx_raw = pd.DataFrame({"日期": ["2026-06-26"], "收盘": [7.18]})
+    # Task 9 FXFetcher 实测列：currency_boc_sina 返回「央行中间价/中行折算价」而非「收盘」
+    fx_raw = pd.DataFrame({"日期": ["2026-06-26"], "央行中间价": [7.18], "中行折算价": [7.18]})
     mocker.patch("akshare.currency_boc_sina", return_value=fx_raw)
 
     result = run_daily_pipeline(
@@ -21,6 +22,8 @@ def test_run_daily_pipeline_quote_clean_store(mocker, isolated_data_dir):
         fx_pairs=["USD/CNY"],
     )
     assert result.status["quote"]["a_share"] == "ok"
+    # FX 路径须成功（旧 mock 用「收盘」列会落入「未找到可用汇率列」分支 → 静默 STALE）
+    assert result.status["fx"]["USD/CNY"] == "ok"
     # 行情已清洗存储，可读回
     from src.data_pipeline.store import read_parquet
     df = read_parquet("market", "a_share", as_of="2026-06-27")

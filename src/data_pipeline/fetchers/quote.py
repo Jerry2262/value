@@ -5,11 +5,14 @@ adj_factor 默认 1.0（不复权快照）；后复权变换在 cleaners 中应�
 """
 from __future__ import annotations
 
+import logging
 import time
 
 import pandas as pd
 
 from src.data_pipeline.fetchers.base import FetcherError, QUOTE_COLUMNS, retry_with_backoff
+
+logger = logging.getLogger(__name__)
 
 
 def _normalize_quote(df: pd.DataFrame, code: str, market: str) -> pd.DataFrame:
@@ -108,8 +111,10 @@ class HKQuoteFetcher:
                 adjust="",
             )
             return _normalize_quote(raw, code, "hk")
-        except Exception:  # noqa: BLE001
-            pass  # 降级备源
+        except Exception as exc:  # noqa: BLE001
+            # 记录主源失败原因（含 _normalize_quote 的 NaN-guard FetcherError），
+            # 避免数据质量失败与「源宕机」无法区分。
+            logger.warning("港股 %s akshare 主源失败，降级 yfinance: %s", code, exc)
         # 备源 yfinance（港股代码加 .HK 后缀）
         try:
             import yfinance as yf

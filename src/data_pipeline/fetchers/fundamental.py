@@ -120,12 +120,16 @@ class USFundamentalFetcher:
             info = tkr.info or {}
         except Exception as exc:  # noqa: BLE001
             raise RuntimeError(f"yfinance 财务失败 {code}") from exc
+        # 单位归一化：yfinance returnOnEquity 为小数（如 0.30），A 股 净资产收益率 为百分数（如 30.0）；
+        # 统一为百分数，避免 Phase 3「ROE > 15」筛选对 A 股全过 / 美股全挂。
+        roe_raw = info.get("returnOnEquity")
+        roe = roe_raw * 100 if roe_raw is not None else None
         row = {
             "code": code, "market": "us",
             "report_period": None, "announcement_date_approx": None,
             "revenue": info.get("totalRevenue"),
             "net_profit": info.get("netIncomeToCommon"),
-            "roe": info.get("returnOnEquity"),
+            "roe": roe,
             "debt_ratio": None,
             "fcf": info.get("freeCashflow"),
             "total_market_cap": info.get("marketCap"),
@@ -134,7 +138,7 @@ class USFundamentalFetcher:
 
 
 class HKFundamentalFetcher:
-    """港股财务（akshare 主，字段不全时部分为 None）。"""
+    """港股财务（v1 占位）：当前仅取资产负债表，revenue/net_profit/roe/fcf 字段未填充（全 None）。Phase 3 需补利润表/现金流接口。"""
 
     @retry_with_backoff(retries=3, delays=(1, 3, 9))
     def fetch(self, code: str) -> pd.DataFrame:
