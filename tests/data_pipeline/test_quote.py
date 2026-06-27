@@ -61,3 +61,21 @@ def test_hk_fetcher_fallback_to_yfinance(mocker, sample_us_quote_raw):
     df = HKQuoteFetcher().fetch_daily("00700", "2026-06-24", "2026-06-25")
     assert len(df) == 2
     assert (df["market"] == "hk").all()
+
+
+def test_normalize_rejects_unrecognized_columns(mocker):
+    """数据源返回非空但无 OHLC 列 → FetcherError（不静默存 NaN，spec §3.6 STALE）。
+
+    回归锁死：yfinance 风格 DatetimeIndex + 无 Close 列 → reset_index 得 date，
+    但 reindex 后 close 全 NaN。若无 NaN guard，下游会静默存全 NaN 行（绕过 STALE）。
+    """
+    mocker.patch("src.data_pipeline.fetchers.quote.time.sleep")
+    # yfinance 风格：DatetimeIndex + 无任何 OHLC 列（reindex 前可识别 date，close 缺失）
+    garbage = pd.DataFrame(
+        {"foo": [1, 2], "bar": [3, 4]},
+        index=pd.to_datetime(["2026-06-24", "2026-06-25"]),
+    )
+    mocker.patch("yfinance.download", return_value=garbage)
+    from src.data_pipeline.fetchers.base import FetcherError
+    with pytest.raises(FetcherError):
+        USQuoteFetcher().fetch_daily("AAPL", "2026-06-24", "2026-06-25")

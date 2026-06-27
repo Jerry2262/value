@@ -50,7 +50,16 @@ def _normalize_quote(df: pd.DataFrame, code: str, market: str) -> pd.DataFrame:
     # 直接 df[QUOTE_COLUMNS] 会 KeyError → 经 retry_with_backoff 包装成 FetcherError
     # → 市场被误标 STALE。缺失列补 NaN；下游 clean_quote / flag_quote_anomalies 均以
     # `if col in df.columns` + pd.to_numeric(errors="coerce") 守卫，可安全吞 NaN。
-    return df.reindex(columns=QUOTE_COLUMNS)
+    out = df.reindex(columns=QUOTE_COLUMNS)
+    # NaN guard (Task 8 review fix): 数据源返回非空但 OHLC 列不可识别时，reindex 会
+    # 产出 date/code/market/adj_factor 有值、open/high/low/close/volume 全 NaN 的行 →
+    # 下游静默存脏数据，绕过 spec §3.6 STALE 机制。改为响亮失败：抛 FetcherError，
+    # 经 retry_with_backoff 包装后 pipeline 将该市场标记 STALE（不静默存 NaN）。
+    if not out.empty and out["close"].isna().all():
+        raise FetcherError(
+            f"{market} {code}: 归一化后 close 全为 NaN（数据源列不可识别）"
+        )
+    return out
 
 
 class AShareQuoteFetcher:
