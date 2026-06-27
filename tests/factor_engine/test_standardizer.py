@@ -37,6 +37,16 @@ def test_zscore_preserves_nan():
     assert pd.isna(out.iloc[1])
 
 
+def test_zscore_zero_std_preserves_nan():
+    """std==0（常量）时，NaN 位置保留 NaN（不注入 0，spec Z-score NaN 保留）。"""
+    s = pd.Series([5.0, 5.0, np.nan, 5.0])
+    out = zscore(s)
+    assert out.iloc[0] == 0.0   # 常量有效值 → 0
+    assert out.iloc[1] == 0.0
+    assert pd.isna(out.iloc[2])  # NaN 保留
+    assert out.iloc[3] == 0.0
+
+
 def test_standardize_market_only():
     """无 industry_map → 仅市场内 Z（跳过行业内层）。"""
     raw = pd.Series({"C1": 30.0, "C2": 15.0, "C3": 5.0})

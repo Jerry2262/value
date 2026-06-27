@@ -32,7 +32,10 @@ def zscore(s: pd.Series) -> pd.Series:
         return s.copy()
     std = valid.std()
     if std == 0 or np.isnan(std):
-        return pd.Series(0.0, index=s.index)  # 无离散度 → 全 0
+        # 无离散度 → 有效位置 0.0，但保留原 NaN 位置（spec Z-score NaN 保留）
+        out = pd.Series(0.0, index=s.index)
+        out[s.isna()] = np.nan
+        return out
     return (s - valid.mean()) / std
 
 
