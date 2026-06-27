@@ -26,8 +26,13 @@ def get_connection(db_path: Path) -> sqlite3.Connection:
 def run_write(db_path: Path, fn: Callable[[sqlite3.Connection], T]) -> T:
     """串行化执行写事务：加全局写锁，开事务，执行 fn，提交/回滚。
 
-    注：若 fn 内部已自行结束事务（例如 sqlite3.Connection.executescript 会先
-    隐式 COMMIT），则通过 conn.in_transaction 判定后跳过显式 COMMIT/ROLLBACK，
+    原子性契约：fn 不得在内部自行结束事务（如调用
+    sqlite3.Connection.executescript 或显式 COMMIT）。若 fn 自行提交，
+    则其后续语句运行在 run_write 的事务之外，fn 抛出的异常不会回滚
+    已提交的部分——原子性不再保证，仅未提交部分回滚。
+
+    实现注：若 fn 内部已自行结束事务（executescript 会先隐式 COMMIT），
+    则通过 conn.in_transaction 判定后跳过显式 COMMIT/ROLLBACK，
     避免 "no transaction is active" 错误。
     """
     with _write_lock:
