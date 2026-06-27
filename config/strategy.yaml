@@ -1,0 +1,40 @@
+# 策略配置（spec §4.4/§4.5/§4.7）
+investment_horizon_years: 3
+horizon_band_years: 2
+
+funnel:
+  layer4_top_pct: 0.20            # 综合得分市场内前 20%
+  pe_pb_max_percentile: 0.80      # PE/PB 不处于历史最高 20% 分位
+  max_candidate_pool: 50
+  max_holdings: 20
+
+pricing:
+  pe_percentile_green: 0.30       # ≤30% 绿灯
+  pe_percentile_yellow: 0.50      # 30-50% 黄灯
+  dcf:
+    discount_rate_low: 0.10
+    discount_rate_high: 0.12
+    terminal_growth_max: 0.03
+    fcf_lookback_years: 5
+    financial_sector_gics: "40"   # 金融股跳过 DCF
+
+signals:
+  sell_reasons:
+    - thesis_broken
+    - overvalued
+    - found_better
+    - other
+
+portfolio:
+  max_single_position:
+    high_conviction: 0.15
+    mid_conviction: 0.08
+    low_conviction: 0.03
+  max_single_market: 0.60
+  max_single_industry: 0.40
+  min_cash_reserve: 0.10
+
+ai_question_generator:
+  cache_ttl_days: 180
+  max_calls_per_run: 50
+  rate_limit_per_second: 1

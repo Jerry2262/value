@@ -1,0 +1,35 @@
+# 股票池基础过滤参数 + 能力圈（spec §4.1 第1/1.5层）
+markets:
+  a_share:
+    source: akshare
+    currency: CNY
+    min_market_cap_cny: 10_000_000_000      # 100 亿
+    min_avg_turnover_cny: 50_000_000        # 日均成交额门槛（示例，探针后校准）
+  us:
+    source: yfinance
+    currency: USD
+    min_market_cap_usd: 2_000_000_000       # $2B
+    min_avg_turnover_usd: 5_000_000
+  hk:
+    source: [akshare, yfinance]             # 主 + 备
+    currency: HKD
+    min_market_cap_hkd: 20_000_000_000      # 200 亿港币
+    min_avg_turnover_hkd: 10_000_000
+
+excluded_industries:
+  gics:
+    - "35"   # 医疗保健
+    - "40"   # 金融（保留——金融股不排除，仅 DCF 跳过；此处不列）
+  # 实际排除：医药、地产
+  excluded:
+    - healthcare       # 医药
+    - real_estate      # 地产
+
+# 能力圈白名单（手动维护，仅实盘生效，回测置空 —— spec §4.1 第1.5层）
+circle_of_competence:
+  enabled_in_backtest: false
+  tracks:                # 懂的赛道（人录入）
+    - consumer_brand
+    - cloud_computing
+    - new_energy_manufacturing
+  # 单票主营可理解标记存于 universe.db，由 Dashboard 维护

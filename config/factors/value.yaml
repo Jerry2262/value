@@ -1,0 +1,48 @@
+factors:
+  pe_percentile:
+    name: "PE历史分位"
+    category: value
+    direction: reverse
+    params:
+      lookback: 5
+      trim_outliers: 0.01
+      market_specific: true
+      sector_neutral: true
+      method: total_market_cap   # spec §4.4 PE 口径：总市值法
+    weight: 0.15
+    in_composite: true
+
+  pb_percentile:
+    name: "PB历史分位"
+    category: value
+    direction: reverse
+    params:
+      lookback: 5
+      trim_outliers: 0.01
+      market_specific: true
+      sector_neutral: true
+      method: total_market_cap
+    weight: 0.10
+    in_composite: true
+
+  dividend_yield:
+    name: "股息率"
+    category: value
+    direction: forward
+    params:
+      min_consistency: 3
+      market_specific: true
+      sector_neutral: true
+    weight: 0.10
+    in_composite: true
+
+  fcf_yield:
+    name: "自由现金流收益率"
+    category: value
+    direction: forward
+    params:
+      fcf_lookback: 5
+      market_specific: true
+      sector_neutral: true
+    weight: 0.10
+    in_composite: true

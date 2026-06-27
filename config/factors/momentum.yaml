@@ -1,0 +1,12 @@
+# spec §4.2：动量权重永久为 0，仅作估值择价反向校验，不进入综合得分
+factors:
+  momentum_12m1m:
+    name: "12-1月动量"
+    category: momentum
+    direction: forward
+    params:
+      skip_recent: 1
+      market_specific: true
+      sector_neutral: false
+    weight: 0.00
+    in_composite: false
