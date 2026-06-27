@@ -82,6 +82,26 @@ def test_pe_percentile_mid(pe_panel):
     assert pct == 1.0
 
 
+def test_pe_percentile_pit_gate_excludes_unannounced(pe_panel):
+    """as_of=2024-03-01：2023 年报 report_period(2023-12-31) 在 5 年窗口内
+    （window_start=2019-03-01）但 announcement_date(2024-04-30) > as_of
+    → PIT gate 必须排除。可见仅 2020-2022 年报 → PE=[10,20,15], 当前=15(2022), 分位=2/3。
+
+    此测试隔离 announcement_date PIT gate——这是 window 过滤抓不到的唯一情形
+    （report_period <= as_of 但 announcement_date > as_of）。若 pe_percentile 绕过
+    pit_fundamental_as_of 直接读 raw，会错误纳入 2023 年报，series 变为
+    [10,20,15,30]、当前=30、分位=4/4=1.0。除 pct 断言外，用 visible report_periods
+    直接锁定 2023 年报被排除（最严格的隔离断言）。
+    """
+    pct = pe_percentile("2024-03-01", "a_share", "C", lookback_years=5)
+    assert pct == pytest.approx(2 / 3)
+    # 关键：验证 2023 年报被 PIT gate 排除（而非被 window 排除）
+    from src.pit.indexer import pit_fundamental_as_of
+    visible = pit_fundamental_as_of("2024-03-01", "a_share", code="C")
+    assert "2023-12-31" not in set(visible["report_period"])  # 未披露
+    assert set(visible["report_period"]) == {"2020-12-31", "2021-12-31", "2022-12-31"}
+
+
 def test_pe_percentile_none_when_insufficient(isolated_data_dir):
     """数据不足 → None。"""
     pct = pe_percentile("2026-05-01", "a_share", "NOPE", lookback_years=5)

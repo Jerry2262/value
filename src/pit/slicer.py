@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from src.pit.indexer import pit_fundamental_as_of, pit_quote_as_of
@@ -89,7 +90,9 @@ def pe_percentile(
     in_window = in_window.drop_duplicates(subset=["year"], keep="last")
     # 计算 PE = total_market_cap / net_profit
     in_window["pe"] = in_window["total_market_cap"] / in_window["net_profit"]
-    valid = in_window.dropna(subset=["pe"])
+    # net_profit==0 → pe=inf；dropna 不剔除 inf，且 inf>0 为 True 会污染分位，故先替换为 NaN
+    valid = in_window.replace([np.inf, -np.inf], np.nan)
+    valid = valid.dropna(subset=["pe"])
     valid = valid[valid["pe"] > 0]
     if len(valid) < 2:
         return None
