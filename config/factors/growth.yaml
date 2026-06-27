@@ -1,0 +1,32 @@
+factors:
+  revenue_cagr_3y:
+    name: "营收3年复合增速"
+    category: growth
+    direction: forward
+    params:
+      lookback: 3
+      market_specific: true
+      sector_neutral: true
+    weight: 0.12
+    in_composite: true
+
+  profit_cagr_3y:
+    name: "净利润3年复合增速"
+    category: growth
+    direction: forward
+    params:
+      lookback: 3
+      market_specific: true
+      sector_neutral: true
+    weight: 0.10
+    in_composite: true
+
+  rnd_ratio:
+    name: "研发占营收比"
+    category: growth
+    direction: forward
+    params:
+      market_specific: true
+      sector_neutral: true
+    weight: 0.05
+    in_composite: true
