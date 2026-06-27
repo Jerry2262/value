@@ -80,6 +80,12 @@ class FXFetcher:
                 f"currency_boc_sina {pair}: 未找到可用汇率列"
                 f"（columns={list(df.columns)}）"
             )
+        # 行级 NaN 守卫：两列皆存在但某行中间价/折算价同为 NaN → 显式失败，
+        # 不让 NaN rate 行静默混入 FX 序列（spec §3：汇率行不可缺）。
+        if df["rate"].isna().any():
+            raise FetcherError(
+                f"currency_boc_sina {pair}: rate 存在 NaN 行（中间价与折算价皆缺）"
+            )
         df["base"] = base
         df["quote"] = quote
         return df[FX_COLUMNS]
