@@ -6,16 +6,21 @@ from src.data_pipeline.fetchers.macro import BenchmarkFetcher, FXFetcher
 
 
 def test_fx_fetcher_normalizes(mocker):
+    # 实测 currency_boc_sina 返回列：央行中间价（交易日）/ 中行折算价（逐日），无「收盘」列。
     raw = pd.DataFrame({
         "日期": ["2026-06-25", "2026-06-26"],
-        "收盘": [7.20, 7.18],
+        "央行中间价": [718.0, 716.0],
+        "中行折算价": [718.0, 716.0],
     })
-    mocker.patch("akshare.currency_boc_sina", return_value=raw)
+    mock_boc = mocker.patch("akshare.currency_boc_sina", return_value=raw)
     df = FXFetcher().fetch("USD/CNY", "2026-06-25", "2026-06-26")
     assert list(df.columns) == FX_COLUMNS
     assert (df["base"] == "USD").all()
     assert (df["quote"] == "CNY").all()
-    assert df["rate"].iloc[0] == 7.20
+    assert df["rate"].iloc[0] == 718.0
+    # 确认传给 akshare 的是中文货币名（实测：USDCNY 形式已不可用）
+    args, kwargs = mock_boc.call_args
+    assert kwargs.get("symbol") == "美元"
 
 
 def test_fx_fetcher_pair_parse():
