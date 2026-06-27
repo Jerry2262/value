@@ -50,3 +50,23 @@ def test_gross_margin_stability_nan_no_gross_margin_field(fundamentals_for_facto
     """
     s = compute_factor("gross_margin_stability", "2024-05-01", "a_share", ["C1", "C2"])
     assert s.isna().all()
+
+
+def test_cash_flow_quality_zero_profit_returns_nan(isolated_data_dir):
+    """net_profit=0 → cash_flow_quality 为 NaN（防 ±inf 污染因子）。
+
+    直接覆盖 quality.py 中 `np_ != 0` 守卫：回归若删去守卫将产生 ±inf。
+    共享 fixture fundamentals_for_factors 不含 np=0 行，故自建分区。
+    """
+    from src.data_pipeline.fetchers.base import FUNDAMENTAL_COLUMNS
+    from src.data_pipeline import store
+
+    fund = pd.DataFrame([{
+        "code": "Z", "market": "a_share", "report_period": "2023-12-31",
+        "announcement_date_approx": "2024-04-30",
+        "revenue": 1e9, "net_profit": 0.0, "roe": 0.0,
+        "debt_ratio": 50.0, "fcf": 1e8, "total_market_cap": 1e10,
+    }], columns=FUNDAMENTAL_COLUMNS)
+    store.write_parquet_partition(fund, "fundamental", "2024-04-30", "a_share")
+    s = compute_factor("cash_flow_quality", "2024-05-01", "a_share", ["Z"])
+    assert pd.isna(s["Z"])
