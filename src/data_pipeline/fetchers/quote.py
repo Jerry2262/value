@@ -46,7 +46,11 @@ def _normalize_quote(df: pd.DataFrame, code: str, market: str) -> pd.DataFrame:
     df["market"] = market
     if "adj_factor" not in df.columns:
         df["adj_factor"] = 1.0
-    return df[QUOTE_COLUMNS]
+    # Brief bug fix (Task 8): 数据源偶尔只返回部分 OHLCV 列（如 yfinance 仅 Close），
+    # 直接 df[QUOTE_COLUMNS] 会 KeyError → 经 retry_with_backoff 包装成 FetcherError
+    # → 市场被误标 STALE。缺失列补 NaN；下游 clean_quote / flag_quote_anomalies 均以
+    # `if col in df.columns` + pd.to_numeric(errors="coerce") 守卫，可安全吞 NaN。
+    return df.reindex(columns=QUOTE_COLUMNS)
 
 
 class AShareQuoteFetcher:
