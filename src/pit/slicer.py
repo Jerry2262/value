@@ -7,28 +7,29 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from src.data_pipeline.fetchers.base import FUNDAMENTAL_COLUMNS, QUOTE_COLUMNS
 from src.pit.indexer import pit_fundamental_as_of, pit_quote_as_of
 
 
 def slice_quote_panel(as_of: str, market: str, codes: list[str]) -> pd.DataFrame:
     """多股票行情面板（date <= as_of，仅 codes）。"""
     if not codes:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=QUOTE_COLUMNS)
     frames = [pit_quote_as_of(as_of, market, code=c) for c in codes]
     frames = [f for f in frames if not f.empty]
     if not frames:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=QUOTE_COLUMNS)
     return pd.concat(frames, ignore_index=True)
 
 
 def slice_latest_fundamental(as_of: str, market: str, codes: list[str]) -> pd.DataFrame:
     """每只股票截至 as_of 最新一期财报（report_period 最大）。"""
     if not codes:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=FUNDAMENTAL_COLUMNS)
     frames = [pit_fundamental_as_of(as_of, market, code=c) for c in codes]
     frames = [f for f in frames if not f.empty]
     if not frames:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=FUNDAMENTAL_COLUMNS)
     all_f = pd.concat(frames, ignore_index=True)
     # 每只股票取 report_period 最大的一期
     idx = all_f.groupby("code")["report_period"].idxmax()
@@ -38,7 +39,8 @@ def slice_latest_fundamental(as_of: str, market: str, codes: list[str]) -> pd.Da
 def pe_ratio_at(as_of: str, market: str, code: str) -> float | None:
     """T 日 PE（总市值法：total_market_cap / net_profit，spec §4.4）。
 
-    用 T 日最新可见财报的 net_profit。net_profit<=0 或缺失 → None。
+    用 T 日最新可见财报的 net_profit。net_profit<=0、mcap<=0 或缺失 → None
+    （与 pe_percentile 过滤 pe>0 对称）。
     """
     fund = pit_fundamental_as_of(as_of, market, code=code)
     if fund.empty:
@@ -46,7 +48,7 @@ def pe_ratio_at(as_of: str, market: str, code: str) -> float | None:
     latest = fund.loc[fund["report_period"].idxmax()]
     np_ = latest.get("net_profit")
     mcap = latest.get("total_market_cap")
-    if pd.isna(np_) or pd.isna(mcap) or np_ <= 0:
+    if pd.isna(np_) or pd.isna(mcap) or np_ <= 0 or mcap <= 0:
         return None
     return float(mcap) / float(np_)
 

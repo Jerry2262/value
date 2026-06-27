@@ -65,6 +65,15 @@ def pit_fundamental_as_of(as_of: str, market: str, code: str | None = None) -> p
     注：不对 fundamental 施加 read_parquet 分区级过滤——partition_date 是分区"最新披露日"，
     同一 report_period 的修正版常出现在更晚分区但 announcement_date 仍为原披露日。详见模块
     docstring。
+
+    前视说明（重要）：跨分区去重 "keep last" 取最新分区版本，意味着更晚分区中同 report_period
+    的修正值在早期 as_of 即可见。例如 as_of=2024-05-15 时 2023 年报原值 roe=30 已披露；若
+    2024-08-31 分区载入修正值 roe=31（announcement_date 仍为原披露日），则 2024-05-15 切片
+    可见 roe=31——但当日公众仅知 roe=30。这是同一 report_period 的重述前视，源自
+    announcement_date_approx 退化模型（spec §3.4；probe 1 回退到 report_period+固定 lag，
+    无法为修正版单独定年）。真正的未来报告（不同 report_period、announcement_date 在 as_of
+    之后）不会泄露——announcement_date_approx 行级门始终成立。Phase 4/7 回测消费者须对受影响
+    序列谨慎解读；若需重述保真，可考虑更严格的分区过滤变体（暂缓）。
     """
     raw = store.read_parquet("fundamental", market)
     if raw.empty:
