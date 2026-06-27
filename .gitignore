@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Data & outputs (local, not version controlled)
+data/
+outputs/
+.superpowers/
+
+# Secrets
+.env
+
+# OS
+.DS_Store
