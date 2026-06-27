@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 
+from src.data_pipeline.fetchers.base import QUOTE_COLUMNS
 from src.pit.indexer import (
     pit_active_universe,
     pit_delisted_before,
@@ -33,6 +34,7 @@ def test_pit_quote_code_filter(multi_partition_quote):
 def test_pit_quote_empty_when_no_data(isolated_data_dir):
     df = pit_quote_as_of("2026-06-27", "us")
     assert df.empty
+    assert list(df.columns) == QUOTE_COLUMNS
 
 
 def test_pit_fundamental_filters_by_announcement_date(multi_partition_fundamental):

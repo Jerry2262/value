@@ -27,6 +27,11 @@ from __future__ import annotations
 import pandas as pd
 
 from src.data_pipeline import store
+from src.data_pipeline.fetchers.base import (
+    DELISTING_COLUMNS,
+    FUNDAMENTAL_COLUMNS,
+    QUOTE_COLUMNS,
+)
 
 
 def pit_quote_as_of(as_of: str, market: str, code: str | None = None) -> pd.DataFrame:
@@ -38,7 +43,7 @@ def pit_quote_as_of(as_of: str, market: str, code: str | None = None) -> pd.Data
     # 读所有 partition_date <= as_of 的分区（含历史分区，用于去重取最新版本）
     raw = store.read_parquet("market", market, as_of=as_of)
     if raw.empty:
-        return raw
+        return pd.DataFrame(columns=QUOTE_COLUMNS)
     df = raw[raw["date"] <= as_of].copy()
     if code is not None:
         df = df[df["code"] == code]
@@ -63,7 +68,7 @@ def pit_fundamental_as_of(as_of: str, market: str, code: str | None = None) -> p
     """
     raw = store.read_parquet("fundamental", market)
     if raw.empty:
-        return raw
+        return pd.DataFrame(columns=FUNDAMENTAL_COLUMNS)
     # 行级过滤：announcement_date_approx <= as_of（缺失则视为不可见）
     mask = raw["announcement_date_approx"].notna() & (raw["announcement_date_approx"] <= as_of)
     df = raw[mask].copy()
@@ -86,12 +91,17 @@ def pit_delisted_before(as_of: str, market: str) -> pd.DataFrame:
     注：不对 delisting 施加 read_parquet 分区级过滤——退市列表是慢变参考表，partition_date
     仅为拉取日，历史退市须对任意 as_of 可见。delist_date 行级过滤是 PIT 唯一门，无前视风险。
     """
-    from src.data_pipeline.fetchers.base import DELISTING_COLUMNS
     raw = store.read_parquet("delisting", market)
     if raw.empty:
         return pd.DataFrame(columns=DELISTING_COLUMNS)
     mask = raw["delist_date"].notna() & (raw["delist_date"] <= as_of)
-    return raw[mask].reset_index(drop=True)
+    df = raw[mask]
+    if df.empty:
+        return pd.DataFrame(columns=DELISTING_COLUMNS)
+    # 跨分区去重：同一 code 在多个分区出现时，保留最新分区版本
+    # （read_parquet 按 partition_date 升序拼接，keep="last" 即取最新分区版本）。
+    df = df.drop_duplicates(subset=["code"], keep="last")
+    return df.reset_index(drop=True)
 
 
 def pit_active_universe(as_of: str, market: str, all_codes: list[str]) -> list[str]:
