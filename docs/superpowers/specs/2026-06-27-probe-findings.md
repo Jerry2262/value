@@ -5,6 +5,8 @@
 > 环境：akshare 1.18.64 + yfinance 1.4.1，`.venv`，分支 `phase1-data-probes`
 > 测试命令：`pytest tests/test_probes/test_integration_real_sources.py -m integration -v`
 
+> **v1.4 定位更新：** 退市处理整体降级为非重点（spec §3.5）。下文探针 2、3（港股/美股退市）现为**参考性低优先级**探针——其价值在于确认"免费源不可得"并触发回测标注路径，不阻塞策略开发。探针 1、4、5 仍是硬门槛。
+
 ## 0. 集成测试总体结论
 
 | 项 | 结论 |
