@@ -60,6 +60,9 @@ def dcf_intrinsic_value(
     fund = pit_fundamental_as_of(as_of, market, code=code)
     if fund.empty:
         return None
+    # pit_fundamental_as_of 按 announcement_date_approx 排序去重，未必按 report_period；
+    # 此处按 report_period 排序后再 tail，确保取到最近 N 年（robustness）。
+    fund = fund.sort_values("report_period")
     fcfs = fund["fcf"].dropna()
     if len(fcfs) < 2:  # 至少 2 年 FCF
         return None
